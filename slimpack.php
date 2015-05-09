@@ -3,7 +3,7 @@
 Plugin Name: Slimpack
 Plugin URI: http://sparanoid.com/work/slimpack/
 Description: Slimpack — Lightweight Jetpack. Super-fast performance without modules that requires contracting WordPress.com.
-Version: 1.0.1
+Version: 1.0.2
 Author: Tunghsiao Liu
 Author URI: http://sparanoid.com/
 Author Email: t@sparanoid.com
@@ -30,23 +30,23 @@ License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
 */
 
-define( 'SLIMPACK__BASE',							'slimpack/' );
-define( 'JETPACK__PLUGIN_DIR',				plugin_dir_path( __FILE__ ) . SLIMPACK__BASE );
-define( 'JETPACK__PLUGIN_FILE',				__FILE__ );
+// Slimpack defines
+define( 'SLIMPACK__BASE',              'slimpack/' );
 
-if ( !class_exists( 'Jetpack' ) ) {
+// Jetpack defines
+define( 'JETPACK__VERSION',            '3.5.3' );
+define( 'JETPACK__PLUGIN_DIR',         plugin_dir_path( __FILE__ ) . SLIMPACK__BASE );
+define( 'JETPACK__PLUGIN_FILE',        __FILE__ );
+
+defined( 'JETPACK__GLOTPRESS_LOCALES_PATH' ) or define( 'JETPACK__GLOTPRESS_LOCALES_PATH', JETPACK__PLUGIN_DIR . 'locales.php' );
+
+// Check if Jetpack is running
+if ( class_exists( 'Jetpack' ) ) {
+	trigger_error( sprintf( __( 'Jetpack is running! deactivate it and try again.', 'jetpack' ), 'WordPress.com Stats' ), E_USER_ERROR );
+} else {
 	require_once( JETPACK__PLUGIN_DIR . 'class.jetpack.php' );
-}
-
-if ( !function_exists( 'jetpack_is_mobile' ) ) {
 	require_once( JETPACK__PLUGIN_DIR . 'class.jetpack-user-agent.php' );
-}
-
-if ( !class_exists( 'Jetpack_Options' ) ) {
 	require_once( JETPACK__PLUGIN_DIR . 'class.jetpack-options.php' );
-}
-
-if ( !function_exists( 'jetpack_require_lib' ) ) {
 	require_once( JETPACK__PLUGIN_DIR . 'require-lib.php' );
 }
 
@@ -61,6 +61,7 @@ add_filter( 'plugin_action_links', 'slimpack_plugin_action_links', 10, 2 );
 // Slimpack
 add_action( 'init', array( 'Jetpack', 'init' ) );
 add_action( 'plugins_loaded', array( 'Jetpack', 'load_modules' ), 100 );
+add_filter( 'is_jetpack_site', '__return_true' );
 
 add_action( 'activated_plugin','slimpack_save_error' );
 function slimpack_save_error(){
@@ -93,9 +94,13 @@ function slimpack_add_defaults() {
 			"jp_carousel" => "1",
 			"jp_contact_form" => "1",
 			"jp_custom_css" => "1",
+			"jp_custom_content_types" => "0",
+			"jp_gravatar_hovercards" => "0",
 			"jp_infinite_scroll" => "1",
 			"jp_latex" => "0",
 			"jp_markdown" => "1",
+			"jp_omnisearch" => "0",
+			"jp_sharedaddy" => "0",
 			"jp_shortcodes" => "1",
 			"jp_site_icon" => "1",
 			"jp_verification_tools" => "1",
@@ -171,6 +176,16 @@ function slimpack_render_form() {
 							</label><br>
 
 							<label>
+								<input name="slimpack_options[jp_custom_content_types]" type="checkbox" value="1" <?php if (isset($options['jp_custom_content_types'])) { checked('1', $options['jp_custom_content_types']); } ?>>
+								<?php _e( 'Custom Content Types', 'jetpack' ); ?>
+							</label><br>
+
+							<label>
+								<input name="slimpack_options[jp_gravatar_hovercards]" type="checkbox" value="1" <?php if (isset($options['jp_gravatar_hovercards'])) { checked('1', $options['jp_gravatar_hovercards']); } ?>>
+								<?php _e( 'Gravatar Hovercards', 'jetpack' ); ?>
+							</label><br>
+
+							<label>
 								<input name="slimpack_options[jp_infinite_scroll]" type="checkbox" value="1" <?php if (isset($options['jp_infinite_scroll'])) { checked('1', $options['jp_infinite_scroll']); } ?>>
 								<?php _e( 'Infinite Scroll', 'slimpack' ); ?>
 							</label><br>
@@ -183,6 +198,16 @@ function slimpack_render_form() {
 							<label>
 								<input name="slimpack_options[jp_markdown]" type="checkbox" value="1" <?php if (isset($options['jp_markdown'])) { checked('1', $options['jp_markdown']); } ?>>
 								<?php _e( 'Markdown', 'jetpack' ); ?>
+							</label><br>
+
+							<label>
+								<input name="slimpack_options[jp_omnisearch]" type="checkbox" value="1" <?php if (isset($options['jp_omnisearch'])) { checked('1', $options['jp_omnisearch']); } ?>>
+								<?php _e( 'Omnisearch', 'jetpack' ); ?>
+							</label><br>
+
+							<label>
+								<input name="slimpack_options[jp_sharedaddy]" type="checkbox" value="1" <?php if (isset($options['jp_sharedaddy'])) { checked('1', $options['jp_sharedaddy']); } ?>>
+								<?php _e( 'Sharing', 'jetpack' ); ?>
 							</label><br>
 
 							<label>
@@ -256,6 +281,18 @@ function slimpack_conditions() {
 		}
 	}
 
+	if (isset($tmp['jp_custom_content_types'])) {
+		if($tmp['jp_custom_content_types']=='1'){
+			require_once( JETPACK__PLUGIN_DIR . 'modules/custom-content-types.php' );
+		}
+	}
+
+	if (isset($tmp['jp_gravatar_hovercards'])) {
+		if($tmp['jp_custom_css']=='1'){
+			require_once( JETPACK__PLUGIN_DIR . 'modules/gravatar-hovercards.php' );
+		}
+	}
+
 	if (isset($tmp['jp_infinite_scroll'])) {
 		if($tmp['jp_infinite_scroll']=='1'){
 			require_once( JETPACK__PLUGIN_DIR . 'modules/infinite-scroll.php' );
@@ -271,6 +308,21 @@ function slimpack_conditions() {
 	if (isset($tmp['jp_markdown'])) {
 		if($tmp['jp_markdown']=='1'){
 			require_once( JETPACK__PLUGIN_DIR . 'modules/markdown.php' );
+		}
+	}
+
+	if (isset($tmp['jp_omnisearch'])) {
+		if($tmp['jp_omnisearch']=='1'){
+			// SLIMPACK: icon hotfix
+			require_once( JETPACK__PLUGIN_DIR . '_inc/genericons.php' );
+			require_once( JETPACK__PLUGIN_DIR . 'modules/omnisearch.php' );
+			jetpack_register_genericons();
+		}
+	}
+
+	if (isset($tmp['jp_sharedaddy'])) {
+		if($tmp['jp_sharedaddy']=='1'){
+			require_once( JETPACK__PLUGIN_DIR . 'modules/sharedaddy.php' );
 		}
 	}
 
